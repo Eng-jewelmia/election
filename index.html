@@ -3,85 +3,72 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>নান্দাইল উপজেলা নির্বাচনী ডাটাবেজ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>নান্দাইল নির্বাচনী ডাটাবেজ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #15803d;
+            --primary-dark: #14532d;
+        }
         body {
-            font-family: 'Noto Sans Bengali', 'SolaimanLipi', sans-serif;
+            font-family: 'Noto Sans Bengali', sans-serif;
             background-color: #f8fafc;
-            color: #000000;
+            color: #0f172a;
             -webkit-print-color-adjust: exact;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
         @media print {
-            .no-print {
-                display: none !important;
-            }
-            body {
-                background-color: white !important;
-                color: black !important;
-            }
-            @page {
-                size: A4 landscape;
-                margin: 3mm !important;
-            }
-            main {
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                font-size: 10px !important; /* Extremely slim for more data */
-            }
-            th, td {
-                border: 1px solid black !important;
-                padding: 1px 2px !important;
-                line-height: 1.1 !important;
-            }
-            .stamp-photo {
-                width: 28px !important;
-                height: 28px !important;
-            }
+            .no-print { display: none !important; }
+            body { background-color: white !important; }
+            @page { size: A4 landscape; margin: 3mm !important; }
+            main { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            table { font-size: 9px !important; width: 100% !important; border-collapse: collapse !important; }
+            th, td { border: 0.5px solid black !important; padding: 1px 2px !important; }
+            .stamp-photo { width: 25px !important; height: 25px !important; }
         }
         .stamp-photo {
             width: 32px;
             height: 32px;
             object-fit: cover;
-            border: 0.5px solid #000;
+            border: 0.5px solid #cbd5e1;
+            border-radius: 2px;
         }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #15803d !important;
+        @media (max-width: 768px) {
+            .mobile-card {
+                background: white;
+                border-radius: 12px;
+                padding: 12px;
+                margin-bottom: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                border-left: 4px solid var(--primary);
+            }
         }
-        .custom-scrollbar::-webkit-scrollbar {
-          height: 6px;
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 10px;
-        }
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        * { -webkit-tap-highlight-color: transparent; }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.36.0"
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

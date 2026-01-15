@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Member } from '../types';
-import { Save, RefreshCw, Trash2, X, Languages, Info, MapPin, Users, Crop, Check, ZoomIn, ZoomOut } from 'lucide-react';
-import { transliterateToBangla } from '../utils/transliterate';
+import { Member } from '../types.ts';
+import { Save, RefreshCw, Trash2, X, Languages, Info, MapPin, Users, Crop, Check, ZoomIn, ZoomOut, Image as ImageIcon } from 'lucide-react';
+import { transliterateToBangla } from '../utils/transliterate.ts';
 
 interface MemberFormProps {
   onSave: (member: Omit<Member, 'id' | 'serial' | 'created_at'>) => void;
@@ -20,7 +20,6 @@ export const MemberForm: React.FC<MemberFormProps> = ({
   const [isSmartBangla, setIsSmartBangla] = useState(true);
   const [suggestion, setSuggestion] = useState<{ field: string; text: string; original: string } | null>(null);
   
-  // Manual Cropping States
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -29,11 +28,13 @@ export const MemberForm: React.FC<MemberFormProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const DEFAULT_ORG = 'বাংলাদেশ জাতীয়তাবাদী দল - বিএনপি';
-  
+  const defaultVillages = ['বাসাটি', 'লংপুর', 'বানাইল', 'ফুলবাড়িয়া', 'খামারগাঁও', 'ঘোষপালা'];
+  const associateWings = ['স্বেচ্ছাসেবক দল', 'যুবদল', 'ছাত্রদল', 'কৃষক দল', 'মহিলা দল', 'অন্যান্য'];
+
   const [formData, setFormData] = useState<Omit<Member, 'id' | 'serial' | 'created_at'>>({
     photo_url: 'https://picsum.photos/200/200',
     name: '',
@@ -46,10 +47,6 @@ export const MemberForm: React.FC<MemberFormProps> = ({
     vote_center: centers[0] || '',
     remarks: '',
   });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const defaultVillages = ['বাসাটি', 'লংপুর', 'বানাইল', 'ফুলবাড়িয়া', 'খামারগাঁও', 'ঘোষপালা'];
-  const associateWings = ['স্বেচ্ছাসেবক দল', 'যুবদল', 'ছাত্রদল', 'কৃষক দল', 'মহিলা দল', 'অন্যান্য'];
 
   useEffect(() => {
     if (editingMember) {
@@ -87,8 +84,31 @@ export const MemberForm: React.FC<MemberFormProps> = ({
     } else {
       setSuggestion(null);
     }
-    
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const performCrop = () => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (canvas && img) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const cropSize = 250;
+        canvas.width = cropSize;
+        canvas.height = cropSize;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, cropSize, cropSize);
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        const scale = Math.min(250 / imgWidth, 250 / imgHeight);
+        const displayW = imgWidth * scale * zoom;
+        const displayH = imgHeight * scale * zoom;
+        ctx.drawImage(img, (cropSize/2 - displayW/2 + position.x), (cropSize/2 - displayH/2 + position.y), displayW, displayH);
+        setFormData(prev => ({ ...prev, photo_url: canvas.toDataURL('image/jpeg', 0.8) }));
+        setIsCropping(false);
+        setTempImage(null);
+      }
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,74 +123,6 @@ export const MemberForm: React.FC<MemberFormProps> = ({
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDragging(true);
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setDragStart({ x: clientX - position.x, y: clientY - position.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setPosition({
-      x: clientX - dragStart.x,
-      y: clientY - dragStart.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const performCrop = () => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    if (canvas && img) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        const cropSize = 300; // Final output size
-        canvas.width = cropSize;
-        canvas.height = cropSize;
-        
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, cropSize, cropSize);
-
-        const imgWidth = img.naturalWidth;
-        const imgHeight = img.naturalHeight;
-        
-        const scale = Math.min(300 / imgWidth, 300 / imgHeight);
-        const displayW = imgWidth * scale * zoom;
-        const displayH = imgHeight * scale * zoom;
-        
-        ctx.drawImage(
-          img,
-          (cropSize/2 - displayW/2 + position.x),
-          (cropSize/2 - displayH/2 + position.y),
-          displayW,
-          displayH
-        );
-        
-        // 0.7 quality saves significant storage space in localStorage
-        const croppedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-        setFormData(prev => ({ ...prev, photo_url: croppedBase64 }));
-        setIsCropping(false);
-        setTempImage(null);
-      }
-    }
-  };
-
-  const applySuggestion = (field: string) => {
-    if (!suggestion) return;
-    const value = (formData as any)[field];
-    const parts = value.split(' ');
-    parts[parts.length - 1] = suggestion.text;
-    const newValue = parts.join(' ') + ' ';
-    setFormData(prev => ({ ...prev, [field]: newValue }));
-    setSuggestion(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -196,293 +148,129 @@ export const MemberForm: React.FC<MemberFormProps> = ({
     setSuggestion(null);
   };
 
-  const SuggestionBox = ({ field }: { field: string }) => {
-    if (suggestion?.field !== field) return null;
-    return (
-      <button
-        type="button"
-        onClick={() => applySuggestion(field)}
-        className="absolute right-2 top-8 text-[11px] bg-blue-600 text-white px-2 py-0.5 rounded shadow-lg animate-bounce z-10 border border-white hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
-      >
-        <span className="opacity-70 font-mono">{suggestion.original} →</span>
-        <span className="font-bold">{suggestion.text}</span>
-      </button>
-    );
-  };
-
   return (
-    <div className="space-y-4 text-black">
-      {/* Manual Cropper Modal */}
-      {isCropping && tempImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-80 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full overflow-hidden">
-            <div className="bg-gray-100 p-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-black">
-                <Crop size={20} className="text-blue-600" /> ছবি ক্রপ করুন
-              </h3>
-              <button onClick={() => setIsCropping(false)} className="text-gray-500 hover:text-black">
-                <X size={24} />
-              </button>
+    <div className="space-y-3">
+      {/* Cropper Modal for Mobile Comfort */}
+      {isCropping && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-90 p-2">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full">
+            <div className="p-3 border-b flex justify-between items-center font-bold">
+              <span>ছবি সাজিয়ে নিন</span>
+              <button onClick={() => setIsCropping(false)}><X size={24}/></button>
             </div>
-            
-            <div className="p-6 flex flex-col items-center select-none">
-              <div 
-                ref={containerRef}
-                className="relative w-64 h-64 border-4 border-blue-500 bg-gray-200 overflow-hidden cursor-move rounded"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onTouchStart={handleMouseDown}
-                onTouchMove={handleMouseMove}
-                onTouchEnd={handleMouseUp}
-              >
-                <img 
-                  ref={imgRef}
-                  src={tempImage} 
-                  alt="To crop" 
-                  draggable={false}
-                  style={{
-                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-                    transformOrigin: 'center',
-                    maxWidth: '100%',
-                    display: 'block',
-                    margin: 'auto',
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0
-                  }}
-                />
-                <div className="absolute inset-0 border-2 border-white border-opacity-30 pointer-events-none flex items-center justify-center">
-                   <div className="w-full h-full border border-dashed border-white border-opacity-50"></div>
-                </div>
+            <div className="p-4 flex flex-col items-center">
+              <div className="relative w-56 h-56 border-2 border-blue-500 rounded-lg overflow-hidden bg-gray-100 touch-none"
+                   onMouseDown={(e) => { setIsDragging(true); setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y }); }}
+                   onMouseMove={(e) => { if (isDragging) setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }); }}
+                   onMouseUp={() => setIsDragging(false)}
+                   onTouchStart={(e) => { setIsDragging(true); setDragStart({ x: e.touches[0].clientX - position.x, y: e.touches[0].clientY - position.y }); }}
+                   onTouchMove={(e) => { if (isDragging) setPosition({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y }); }}
+                   onTouchEnd={() => setIsDragging(false)}>
+                <img ref={imgRef} src={tempImage!} alt="Crop" className="absolute" style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transformOrigin: 'center', maxWidth: 'none' }} />
               </div>
-
-              <div className="mt-6 w-full space-y-4">
-                <div className="flex items-center gap-3">
-                  <ZoomOut size={18} className="text-gray-500" />
-                  <input 
-                    type="range" 
-                    min="0.5" 
-                    max="4" 
-                    step="0.1" 
-                    value={zoom} 
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                  />
-                  <ZoomIn size={18} className="text-gray-500" />
-                </div>
-                <p className="text-center text-xs font-bold text-gray-500">
-                  ছবিটি ড্র্যাগ করে পজিশন করুন এবং স্লাইডার দিয়ে জুম ইন/আউট করুন।
-                </p>
+              <div className="mt-5 w-full space-y-3">
+                <input type="range" min="0.5" max="3" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-full h-2 bg-blue-100 rounded-lg accent-blue-600" />
+                <div className="flex justify-between text-[10px] font-bold text-gray-500"><span>Zoom Out</span><span>Zoom In</span></div>
               </div>
               <canvas ref={canvasRef} className="hidden" />
             </div>
-
-            <div className="bg-gray-50 p-4 border-t flex justify-end gap-3">
-              <button 
-                onClick={() => setIsCropping(false)}
-                className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded transition"
-              >
-                বাতিল
-              </button>
-              <button 
-                onClick={performCrop}
-                className="bg-blue-600 text-white px-8 py-2 rounded font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg"
-              >
-                <Check size={18} /> ক্রপ করুন
-              </button>
+            <div className="p-3 border-t flex justify-end gap-2">
+              <button onClick={() => setIsCropping(false)} className="px-4 py-2 text-sm font-bold text-gray-500">বাতিল</button>
+              <button onClick={performCrop} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg">ক্রপ করুন</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-2 no-print">
-        <div className="flex items-center gap-1 text-xs text-blue-800 font-bold">
-          <Info size={14} />
-          <span>ইংরেজিতে লিখে Space দিন অটো বাংলা হবে</span>
+      {/* Form Controls */}
+      <div className="flex justify-between items-center h-8 no-print">
+        <div className="flex items-center gap-1 text-[11px] text-blue-800 font-bold bg-blue-50 px-2 py-1 rounded">
+          <Info size={12} /><span>লিখে Space দিন বাংলা হবে</span>
         </div>
-        <label className="text-xs font-bold text-black flex items-center gap-1 cursor-pointer bg-white px-3 py-1 rounded-full border border-gray-400 shadow-sm hover:bg-gray-50 transition">
-          <input 
-            type="checkbox" 
-            checked={isSmartBangla} 
-            onChange={(e) => setIsSmartBangla(e.target.checked)}
-            className="rounded border-gray-400 text-green-700 focus:ring-green-600"
-          />
-          <Languages size={14} className="text-green-700" />
-          স্মার্ট বাংলা চালু
-        </label>
+        <button onClick={() => setIsSmartBangla(!isSmartBangla)} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black transition-all border ${isSmartBangla ? 'bg-green-600 text-white border-green-700 shadow-md' : 'bg-white text-gray-400 border-gray-300'}`}>
+          <Languages size={14} /> {isSmartBangla ? 'স্মার্ট বাংলা চালু' : 'স্মার্ট বাংলা বন্ধ'}
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="flex flex-col items-center justify-center border-r border-gray-300 pr-6 space-y-4">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white p-1 rounded-lg">
+        {/* Photo Upload Section */}
+        <div className="md:col-span-1 flex flex-col items-center justify-center p-2 border border-gray-100 rounded-lg bg-gray-50/50">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <img 
-              src={formData.photo_url} 
-              alt="Preview" 
-              className="w-32 h-32 object-cover border-4 border-gray-200 rounded shadow-inner group-hover:opacity-75 transition"
-            />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-               <div className="bg-black bg-opacity-50 text-white p-2 rounded-full"><RefreshCw size={20} /></div>
-            </div>
-            <button 
-              type="button"
-              className="absolute bottom-0 right-0 bg-blue-700 text-white p-2 rounded-full shadow-lg hover:bg-blue-800 transition"
-            >
-              <RefreshCw size={16} />
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handlePhotoUpload} 
-              className="hidden" 
-              accept="image/*"
-            />
+            <img src={formData.photo_url} alt="Profile" className="w-24 h-24 md:w-32 md:h-32 rounded-lg object-cover border-2 border-white shadow-md group-hover:opacity-90 transition" />
+            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg border-2 border-white"><ImageIcon size={14} /></div>
+            <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} className="hidden" accept="image/*" />
           </div>
-          <p className="text-[10px] text-black font-bold uppercase tracking-wider">Stamp Size 1:1</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase mt-3 tracking-tighter">Passport / Stamp Size</p>
         </div>
 
-        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Input Fields Grid */}
+        <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="relative">
-            <label className="block text-sm font-bold text-black">নাম (Name)</label>
-            <input 
-              required name="name" value={formData.name} onChange={handleChange}
-              placeholder="যেমন: Rakib"
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition text-black font-semibold"
-            />
-            <SuggestionBox field="name" />
+            <label className="text-[11px] font-black text-gray-500 uppercase ml-1">পূর্ণ নাম</label>
+            <input required name="name" value={formData.name} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-900" placeholder="যেমন: Rakib Ahmed" />
+            {suggestion?.field === 'name' && <button type="button" onClick={() => { const p = formData.name.split(' '); p[p.length-1] = suggestion.text; setFormData({...formData, name: p.join(' ')+' '}); setSuggestion(null); }} className="absolute right-1 top-8 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded shadow-lg animate-pulse">{suggestion.text}</button>}
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-black">মোবাইল নম্বর</label>
-            <input 
-              required name="mobile" value={formData.mobile} onChange={handleChange}
-              placeholder="017XXXXXXXX"
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition text-black font-mono font-bold"
-            />
+            <label className="text-[11px] font-black text-gray-500 uppercase ml-1">মোবাইল নম্বর</label>
+            <input required name="mobile" type="tel" value={formData.mobile} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold font-mono tracking-wider" placeholder="017xxxxxxxx" />
           </div>
 
-          <div className="relative md:col-span-2 bg-gray-100 p-3 rounded-lg border-2 border-gray-300">
-            <label className="block text-sm font-bold text-black flex items-center gap-1 mb-2">
-              <MapPin size={14} className="text-red-700" /> গ্রাম সিলেক্ট করুন (বা লিখুন)
-            </label>
-            <div className="flex flex-wrap gap-2 mb-3">
+          <div className="relative bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <label className="text-[11px] font-black text-slate-600 uppercase flex items-center gap-1 mb-1"><MapPin size={12}/> গ্রাম</label>
+            <div className="flex flex-wrap gap-1 mb-2">
               {defaultVillages.map(v => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setFormData(prev => ({...prev, village: v}))}
-                  className={`px-3 py-1 text-xs font-bold rounded-full border-2 transition-all ${
-                    formData.village === v 
-                      ? 'bg-green-700 text-white border-green-800 shadow-md' 
-                      : 'bg-white text-black border-gray-400 hover:border-green-700 shadow-sm'
-                  }`}
-                >
-                  {v}
-                </button>
+                <button key={v} type="button" onClick={() => setFormData({...formData, village: v})} className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${formData.village === v ? 'bg-green-600 text-white border-green-700' : 'bg-white text-gray-600 border-gray-300'}`}>{v}</button>
               ))}
             </div>
-            <div className="relative">
-              <input 
-                name="village" value={formData.village} onChange={handleChange}
-                placeholder="গ্রামের নাম..."
-                className="w-full border-2 border-gray-400 rounded px-3 py-2 focus:ring-2 focus:ring-green-600 outline-none transition bg-white text-black font-semibold"
-              />
-              <SuggestionBox field="village" />
+            <input name="village" value={formData.village} onChange={handleChange} className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold" placeholder="গ্রামের নাম লিখুন" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] font-black text-gray-500 uppercase ml-1">দূরত্ব (কি.মি.)</label>
+              <input name="distance" value={formData.distance} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold" placeholder="যেমন: ২.৫" />
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-gray-500 uppercase ml-1">সংগঠনে যুক্ত?</label>
+              <select name="org_yes_no" value={formData.org_yes_no} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold">
+                <option value="হ্যাঁ">হ্যাঁ</option><option value="না">না</option>
+              </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-black">ভোট কেন্দ্র থেকে দূরত্ব</label>
-            <input 
-              name="distance" value={formData.distance} onChange={handleChange}
-              placeholder="যেমন: ২ কি.মি."
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition text-black"
-            />
+            <label className="text-[11px] font-black text-gray-500 uppercase ml-1">সংগঠনের নাম</label>
+            <input name="org_name" value={formData.org_name} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold" />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-black">সংগঠনে যুক্ত কি?</label>
-            <select 
-              name="org_yes_no" value={formData.org_yes_no} onChange={handleChange}
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition cursor-pointer font-bold text-black"
-            >
-              <option value="হ্যাঁ">হ্যাঁ</option>
-              <option value="না">না</option>
-            </select>
-          </div>
-
-          <div className="relative md:col-span-2">
-            <label className="block text-sm font-bold text-black">সংগঠনের নাম</label>
-            <input 
-              name="org_name" value={formData.org_name} onChange={handleChange}
-              placeholder="সংগঠনের নাম লিখুন..."
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition font-bold text-black"
-            />
-            <SuggestionBox field="org_name" />
-          </div>
-
-          <div className="relative md:col-span-2 bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
-            <label className="block text-sm font-bold text-black flex items-center gap-1 mb-2">
-              <Users size={14} className="text-blue-800" /> পদবী ও সংগঠন (সহজে সিলেক্ট করুন)
-            </label>
-            <div className="flex flex-wrap gap-2 mb-3">
+          <div className="relative sm:col-span-2 bg-blue-50/50 p-2 rounded-lg border border-blue-100">
+            <label className="text-[11px] font-black text-blue-800 uppercase flex items-center gap-1 mb-1"><Users size={12}/> পদবী ও উইং</label>
+            <div className="flex flex-wrap gap-1 mb-2">
               {associateWings.map(wing => (
-                <button
-                  key={wing}
-                  type="button"
-                  onClick={() => setFormData(prev => ({...prev, position: wing === 'অন্যান্য' ? '' : wing + ' '}))}
-                  className={`px-3 py-1 text-xs font-bold rounded-full border-2 transition-all ${
-                    formData.position.startsWith(wing) 
-                      ? 'bg-blue-700 text-white border-blue-800 shadow-md' 
-                      : 'bg-white text-black border-gray-400 hover:border-blue-700 shadow-sm'
-                  }`}
-                >
-                  {wing}
-                </button>
+                <button key={wing} type="button" onClick={() => setFormData({...formData, position: wing === 'অন্যান্য' ? '' : wing + ' '})} className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${formData.position.startsWith(wing) ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-blue-800 border-blue-200'}`}>{wing}</button>
               ))}
             </div>
-            <div className="relative">
-              <input 
-                name="position" value={formData.position} onChange={handleChange}
-                placeholder="পদবী (যেমন: সভাপতি / সাধারণ সম্পাদক)"
-                className="w-full border-2 border-gray-400 rounded px-3 py-2 focus:ring-2 focus:ring-green-600 outline-none transition bg-white text-black font-semibold"
-              />
-              <SuggestionBox field="position" />
-            </div>
+            <input name="position" value={formData.position} onChange={handleChange} className="w-full h-9 px-3 bg-white border border-blue-200 rounded-lg text-sm font-bold" placeholder="যেমন: সহ-সভাপতি" />
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-bold text-black">ভোট কেন্দ্র</label>
-            <select 
-              name="vote_center" value={formData.vote_center} onChange={handleChange}
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition cursor-pointer font-bold text-black"
-            >
+          <div>
+            <label className="text-[11px] font-black text-gray-500 uppercase ml-1">ভোট কেন্দ্র</label>
+            <select name="vote_center" value={formData.vote_center} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm font-bold">
               {centers.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
-          <div className="md:col-span-2 relative">
-            <label className="block text-sm font-bold text-black">মন্তব্য</label>
-            <textarea 
-              name="remarks" value={formData.remarks} onChange={handleChange}
-              className="w-full border-2 border-gray-300 rounded px-3 py-2 mt-1 focus:ring-2 focus:ring-green-600 outline-none transition h-20 text-black font-medium"
-            />
-            <SuggestionBox field="remarks" />
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className="text-[11px] font-black text-gray-500 uppercase ml-1">মন্তব্য (যদি থাকে)</label>
+            <input name="remarks" value={formData.remarks} onChange={handleChange} className="w-full h-10 px-3 bg-white border border-gray-300 rounded-lg text-sm" placeholder="অতিরিক্ত তথ্য..." />
           </div>
         </div>
 
-        <div className="md:col-span-3 flex justify-end gap-3 pt-4 border-t border-gray-300">
-          <button 
-            type="button" 
-            onClick={clearForm}
-            className="bg-gray-200 text-black border-2 border-gray-400 px-6 py-2 rounded-lg hover:bg-gray-300 transition flex items-center gap-2 font-bold shadow-sm"
-          >
-            <X size={18} /> ক্লিয়ার
-          </button>
-          <button 
-            type="submit"
-            className="bg-green-700 text-white border-2 border-green-800 px-8 py-2 rounded-lg hover:bg-green-800 transition shadow-lg flex items-center gap-2 font-bold"
-          >
+        {/* Form Actions */}
+        <div className="md:col-span-4 flex justify-end gap-3 pt-2 mt-2 border-t border-gray-100">
+          <button type="button" onClick={clearForm} className="px-6 h-11 rounded-xl text-sm font-black text-gray-500 hover:bg-gray-100 transition flex items-center gap-2 uppercase tracking-wider">ক্লিয়ার</button>
+          <button type="submit" className="flex-1 md:flex-none bg-green-700 hover:bg-green-800 text-white px-10 h-11 rounded-xl text-sm font-black transition-all shadow-lg flex items-center justify-center gap-2 uppercase tracking-wider">
             {editingMember ? <RefreshCw size={18} /> : <Save size={18} />}
             {editingMember ? 'আপডেট করুন' : 'সংরক্ষণ করুন'}
           </button>

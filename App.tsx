@@ -1,46 +1,69 @@
 
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { MemberForm } from './components/MemberForm';
-import { MemberTable } from './components/MemberTable';
-import { Footer } from './components/Footer';
-import { Member, AppConfig } from './types';
-import { LogIn, Database, LogOut, Printer, PlusSquare } from 'lucide-react';
+import { Header } from './components/Header.tsx';
+import { MemberForm } from './components/MemberForm.tsx';
+import { MemberTable } from './components/MemberTable.tsx';
+import { Footer } from './components/Footer.tsx';
+import { Member, AppConfig } from './types.ts';
+import { LogIn, Database, LogOut, Printer, LayoutDashboard, UserPlus, Info } from 'lucide-react';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('nandail_auth') === 'true';
+    try {
+      return localStorage.getItem('nandail_auth') === 'true';
+    } catch (e) {
+      return false;
+    }
   });
 
   const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState<'form' | 'table'>('form');
   
   const [members, setMembers] = useState<Member[]>(() => {
-    const saved = localStorage.getItem('nandail_members_v2');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('nandail_members_v3');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [config, setConfig] = useState<AppConfig>(() => {
-    const saved = localStorage.getItem('nandail_config_v2');
-    return saved ? JSON.parse(saved) : {
-      unionName: '৪ নং চন্ডিপাশা',
-      wardNo: '৮',
-      selectedCenter: 'বাসাটি',
-      allCenters: ['বাসাটি', 'লংপুর', 'বানাইল', 'ফুলবাড়িয়া', 'খামারগাঁও', 'ঘোষপালা'],
-      collectorName: '',
-      collectorMobile: '',
-    };
+    try {
+      const saved = localStorage.getItem('nandail_config_v3');
+      return saved ? JSON.parse(saved) : {
+        unionName: '৪ নং চন্ডিপাশা',
+        wardNo: '৮',
+        selectedCenter: 'বাসাটি',
+        allCenters: ['বাসাটি', 'লংপুর', 'বানাইল', 'ফুলবাড়িয়া', 'খামারগাঁও', 'ঘোষপালা', 'ঘোষপালা আলিয়া মাদ্রাসা'],
+        collectorName: '',
+        collectorMobile: '',
+      };
+    } catch (e) {
+      return {
+        unionName: '৪ নং চন্ডিপাশা',
+        wardNo: '৮',
+        selectedCenter: 'বাসাটি',
+        allCenters: ['বাসাটি', 'লংপুর', 'বানাইল', 'ফুলবাড়িয়া', 'খামারগাঁও', 'ঘোষপালা', 'ঘোষপালা আলিয়া মাদ্রাসা'],
+        collectorName: '',
+        collectorMobile: '',
+      };
+    }
   });
 
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
-  // Sync with LocalStorage permanently
   useEffect(() => {
-    localStorage.setItem('nandail_members_v2', JSON.stringify(members));
+    localStorage.setItem('nandail_members_v3', JSON.stringify(members));
   }, [members]);
 
   useEffect(() => {
-    localStorage.setItem('nandail_config_v2', JSON.stringify(config));
+    localStorage.setItem('nandail_config_v3', JSON.stringify(config));
   }, [config]);
+
+  useEffect(() => {
+    if (editingMember) setActiveTab('form');
+  }, [editingMember]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,13 +72,6 @@ const App: React.FC = () => {
       localStorage.setItem('nandail_auth', 'true');
     } else {
       alert('ভুল পাসওয়ার্ড!');
-    }
-  };
-
-  const handleLogout = () => {
-    if (confirm('লগআউট করতে চান?')) {
-      setIsAuthenticated(false);
-      localStorage.removeItem('nandail_auth');
     }
   };
 
@@ -72,10 +88,11 @@ const App: React.FC = () => {
       };
       setMembers(prev => [...prev, newMember]);
     }
+    setActiveTab('table');
   };
 
   const deleteMember = (id: string) => {
-    if (confirm('ডিলিট করতে চান?')) {
+    if (confirm('আপনি কি নিশ্চিত যে এই তথ্যটি ডিলিট করতে চান?')) {
       setMembers(prev => {
         const filtered = prev.filter(m => m.id !== id);
         return filtered.map((m, idx) => ({ ...m, serial: idx + 1 }));
@@ -83,32 +100,26 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `Election_Data_${config.unionName}_Ward_${config.wardNo}`;
-    window.print();
-    setTimeout(() => { document.title = originalTitle; }, 500);
-  };
-
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm border-t-4 border-green-700">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm border-t-[6px] border-green-700">
           <div className="flex justify-center mb-6">
-            <img src="https://i.postimg.cc/DzC1RqRk/images.jpg" alt="Logo" className="h-16 w-auto" />
+            <img src="https://i.postimg.cc/DzC1RqRk/images.jpg" alt="Logo" className="h-20 w-auto rounded-lg shadow-sm" />
           </div>
-          <h1 className="text-xl font-black text-center mb-6 text-slate-800">অ্যাডমিন প্রবেশ</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <h1 className="text-2xl font-black text-center mb-2 text-slate-800 tracking-tighter">অ্যাডমিন প্রবেশ</h1>
+          <p className="text-center text-gray-500 text-xs mb-8 font-bold">নান্দাইল নির্বাচনী ব্যবস্থাপনা সিস্টেম</p>
+          <form onSubmit={handleLogin} className="space-y-5">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-600 outline-none font-bold text-center"
-              placeholder="পাসওয়ার্ড লিখুন"
+              className="w-full px-4 h-12 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-green-600 outline-none font-black text-center text-lg transition-all"
+              placeholder="পাসওয়ার্ড"
               autoFocus
             />
-            <button type="submit" className="w-full bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition flex items-center justify-center gap-2 font-black shadow-lg">
-              <LogIn size={18} /> লগইন করুন
+            <button type="submit" className="w-full bg-green-700 hover:bg-green-800 text-white h-12 rounded-xl transition-all flex items-center justify-center gap-2 font-black shadow-lg">
+              <LogIn size={20} /> প্রবেশ করুন
             </button>
           </form>
         </div>
@@ -117,52 +128,61 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col print:bg-white">
-      {/* Slim Navbar */}
-      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b no-print py-1.5 px-4 flex justify-between items-center sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col print:bg-white pb-20 md:pb-0">
+      <nav className="bg-white/95 backdrop-blur-sm shadow-sm border-b no-print py-1.5 px-4 flex justify-between items-center sticky top-0 z-[100] h-12">
         <div className="flex items-center gap-2 text-green-800 font-black">
-          <Database size={20} />
-          <span className="text-sm md:text-base">নান্দাইল নির্বাচনী ডাটাবেজ</span>
+          <Database size={20} className="hidden sm:block" />
+          <span className="text-sm md:text-base leading-none">নান্দাইল নির্বাচনী ডাটাবেজ</span>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={handlePrint} 
-            className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 transition flex items-center gap-1.5 text-xs font-bold shadow-sm"
-          >
-            <Printer size={14} /> প্রিন্ট (PDF)
+          <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-black shadow-md">
+            <Printer size={14} /> প্রিন্ট
           </button>
-          <button onClick={handleLogout} className="text-slate-500 hover:text-red-600 p-1 transition">
-            <LogOut size={18} />
+          <button onClick={() => { if(confirm('লগআউট করতে চান?')) { setIsAuthenticated(false); localStorage.removeItem('nandail_auth'); } }} className="text-slate-400 hover:text-red-600 p-1 transition-colors">
+            <LogOut size={20} />
           </button>
         </div>
       </nav>
 
-      <main className="flex-1 w-full max-w-[1366px] mx-auto p-2 md:p-4 space-y-2 print:p-0">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto p-2 sm:p-4 md:p-6 space-y-4 print:p-0">
         <Header config={config} setConfig={setConfig} />
 
-        <div className="no-print bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-1.5">
-            <PlusSquare size={18} className="text-green-700" />
-            <h2 className="text-sm font-black text-slate-800">নতুন তথ্য সংযোজন</h2>
+        <div className={`no-print transition-all ${activeTab === 'form' ? 'block' : 'hidden md:block'} bg-white p-3 md:p-5 rounded-2xl border border-slate-200 shadow-sm`}>
+          <div className="flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
+            <UserPlus size={20} className="text-green-700" />
+            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">তথ্য সংযোজন ও পরিবর্তন</h2>
           </div>
-          <MemberForm 
-            onSave={addOrUpdateMember} 
-            editingMember={editingMember} 
-            setEditingMember={setEditingMember}
-            centers={config.allCenters}
-          />
+          <MemberForm onSave={addOrUpdateMember} editingMember={editingMember} setEditingMember={setEditingMember} centers={config.allCenters} />
         </div>
 
-        <div className="bg-white p-1 rounded-md shadow-md print:shadow-none print:p-0">
-          <MemberTable 
-            members={members} 
-            onEdit={setEditingMember} 
-            onDelete={deleteMember} 
-          />
+        <div className={`bg-white p-1 md:p-2 rounded-2xl shadow-sm border border-slate-200 print:border-none print:shadow-none print:p-0 ${activeTab === 'table' ? 'block' : 'hidden md:block'}`}>
+          <div className="no-print hidden md:flex items-center gap-2 mb-2 p-2 border-b border-slate-50">
+            <LayoutDashboard size={18} className="text-blue-700" />
+            <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">বর্তমান নেতৃত্ববৃন্দ ({members.length})</h2>
+          </div>
+          <MemberTable members={members} onEdit={setEditingMember} onDelete={deleteMember} />
         </div>
 
         <Footer config={config} setConfig={setConfig} />
       </main>
+
+      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex items-center justify-around no-print md:hidden z-[100] px-4">
+        <button onClick={() => setActiveTab('form')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'form' ? 'text-green-700 font-black' : 'text-slate-400'}`}>
+          <UserPlus size={22} />
+          <span className="text-[10px]">তথ্য ফরম</span>
+        </button>
+        <button onClick={() => setActiveTab('table')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'table' ? 'text-green-700 font-black' : 'text-slate-400'}`}>
+          <div className="relative">
+            <LayoutDashboard size={22} />
+            {members.length > 0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center font-black">{members.length}</span>}
+          </div>
+          <span className="text-[10px]">তালিকা দেখুন</span>
+        </button>
+        <button onClick={() => alert('অ্যাপ ভার্সন: ৪.০ (প্রো)')} className="flex flex-col items-center gap-1 text-slate-400">
+          <Info size={22} />
+          <span className="text-[10px]">ইনফো</span>
+        </button>
+      </div>
     </div>
   );
 };

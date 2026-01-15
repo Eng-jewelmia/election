@@ -25,7 +25,10 @@ const commonNames: Record<string, string> = {
   'shohag': 'সোহাগ',
   'rabbane': 'রাব্বানী',
   'ghoshpala': 'ঘোষপালা',
-  'gushpala': 'ঘোষপালা'
+  'gushpala': 'ঘোষপালা',
+  'aliya': 'আলিয়া',
+  'madrasa': 'মাদ্রাসা',
+  'madrasah': 'মাদ্রাসা'
 };
 
 const fullVowels: Record<string, string> = {
