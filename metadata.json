@@ -1,0 +1,7 @@
+{
+  "name": "Nandail Election Management System",
+  "description": "A professional cloud-based election management and leadership database system for Nandail Upazila.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
