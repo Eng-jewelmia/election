@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header.tsx';
-import { MemberForm } from './components/MemberForm.tsx';
-import { MemberTable } from './components/MemberTable.tsx';
-import { Footer } from './components/Footer.tsx';
-import { Member, AppConfig } from './types.ts';
+import { Header } from './components/Header';
+import { MemberForm } from './components/MemberForm';
+import { MemberTable } from './components/MemberTable';
+import { Footer } from './components/Footer';
+import { Member, AppConfig } from './types';
 import { LogIn, Database, LogOut, Printer, LayoutDashboard, UserPlus, Info } from 'lucide-react';
 
 const App: React.FC = () => {
