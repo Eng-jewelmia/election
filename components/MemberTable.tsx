@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Member } from '../types.ts';
+import { Member } from '../types';
 import { Edit2, Trash2, MapPin, Phone, User, Briefcase } from 'lucide-react';
 
 interface MemberTableProps {

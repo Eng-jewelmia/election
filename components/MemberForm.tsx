@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Member } from '../types.ts';
+import { Member } from '../types';
 import { Save, RefreshCw, Trash2, X, Languages, Info, MapPin, Users, Crop, Check, ZoomIn, ZoomOut, Image as ImageIcon } from 'lucide-react';
-import { transliterateToBangla } from '../utils/transliterate.ts';
+import { transliterateToBangla } from '../utils/transliterate';
 
 interface MemberFormProps {
   onSave: (member: Omit<Member, 'id' | 'serial' | 'created_at'>) => void;
